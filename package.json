@@ -1,0 +1,18 @@
+{
+  "name": "haatgo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @haatgo/web",
+    "build": "npm run build --workspace @haatgo/web",
+    "lint": "npm run lint --workspace @haatgo/web",
+    "type-check": "npm run type-check --workspace @haatgo/web",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  }
+}
