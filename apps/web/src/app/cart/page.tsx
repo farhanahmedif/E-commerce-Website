@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
@@ -15,6 +16,9 @@ export default function CartPage() {
   const setQuantity = useShopStore((state) => state.setCartQuantity);
   const remove = useShopStore((state) => state.removeCartLine);
   const subtotal = cart.reduce((sum, line) => sum + line.price * line.quantity, 0);
+  useEffect(() => {
+    if (!hydrated) void useShopStore.persist.rehydrate();
+  }, [hydrated]);
   if (!hydrated)
     return (
       <main className="listing-page">

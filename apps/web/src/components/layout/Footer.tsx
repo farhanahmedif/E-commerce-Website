@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
-import { Button } from '@/components/ui/Button';
+import { FooterNewsletterForm } from './FooterNewsletterForm';
 
 const quickLinks = ['আমাদের কথা', 'সব ক্যাটাগরি', 'আজকের অফার', 'বিক্রেতা হোন'];
 const serviceLinks = ['যোগাযোগ করুন', 'ডেলিভারি তথ্য', 'রিটার্ন ও রিফান্ড', 'সাধারণ জিজ্ঞাসা'];
@@ -82,22 +82,7 @@ export function Footer() {
             <p className="mt-4 text-sm leading-relaxed text-white/75">
               নতুন অফার আর হাটের গল্প পৌঁছে যাবে আপনার ইনবক্সে।
             </p>
-            <form action="#" className="mt-3 flex flex-col gap-2">
-              <label className="sr-only" htmlFor="newsletter-email">
-                ইমেইল ঠিকানা
-              </label>
-              <input
-                autoComplete="email"
-                className="h-11 min-w-0 rounded-md border border-white/30 bg-white/10 px-3 text-sm text-white placeholder:text-white/55 focus:border-haat-marigold focus:outline-none"
-                id="newsletter-email"
-                name="email"
-                placeholder="আপনার ইমেইল"
-                type="email"
-              />
-              <Button className="w-full" type="submit">
-                সাবস্ক্রাইব করুন
-              </Button>
-            </form>
+            <FooterNewsletterForm />
           </div>
         </div>
         <div className="mt-10 flex flex-col gap-2 border-t border-white/20 pt-5 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between">
