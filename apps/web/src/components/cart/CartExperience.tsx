@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
 import { formatBDT } from '@/lib/formatBDT';
+import { FREE_DELIVERY_THRESHOLD, getPricingQuote } from '@/lib/pricing';
 import { useShopStore } from '@/lib/store';
 import { ProductImage } from '@/components/product/ProductImage';
 
@@ -13,6 +14,7 @@ export function CartExperience() {
   const open = useShopStore((state) => state.cartDrawerOpen);
   const hydrated = useShopStore((state) => state.hasHydrated);
   const cart = useShopStore((state) => state.cart);
+  const couponCode = useShopStore((state) => state.couponCode);
   const setOpen = useShopStore((state) => state.setCartDrawerOpen);
   const setQuantity = useShopStore((state) => state.setCartQuantity);
   const removeLine = useShopStore((state) => state.removeCartLine);
@@ -55,9 +57,15 @@ export function CartExperience() {
     };
   }, [open, setOpen]);
   if (!open) return null;
-  const subtotal = cart.reduce((sum, line) => sum + line.price * line.quantity, 0);
-  const deliveryThreshold = 100000;
-  const progress = Math.min(100, (subtotal / deliveryThreshold) * 100);
+  const quote = getPricingQuote(
+    cart.map(({ productId, quantity, variantLabel }) => ({ productId, quantity, variantLabel })),
+    couponCode,
+    'inside-dhaka',
+  );
+  const subtotal = quote.subtotal;
+  const deliveryThreshold = FREE_DELIVERY_THRESHOLD;
+  const progress =
+    quote.deliveryCharge === 0 ? 100 : Math.min(100, (subtotal / deliveryThreshold) * 100);
   return (
     <div
       className="cart-overlay"
@@ -91,7 +99,7 @@ export function CartExperience() {
         </header>
         <div className="delivery-progress">
           <p>
-            {subtotal >= deliveryThreshold
+            {quote.deliveryCharge === 0
               ? 'দারুণ! আপনার ডেলিভারি ফ্রি।'
               : `${formatBDT(deliveryThreshold - subtotal)} টাকার বাজার করলেই ডেলিভারি ফ্রি`}
           </p>
@@ -125,58 +133,68 @@ export function CartExperience() {
         ) : (
           <>
             <ul className="cart-lines">
-              {cart.map((line) => (
-                <li className="cart-line" key={line.id}>
-                  <ProductImage
-                    className="cart-line-image"
-                    name={line.nameBn}
-                    variant={line.image}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      className="font-bold text-haat-green hover:text-haat-brick"
-                      href={`/products/${line.slug}`}
-                      onClick={() => setOpen(false)}
-                    >
-                      {line.nameBn}
-                    </Link>
-                    {line.variantLabel ? (
-                      <p className="mt-1 text-xs text-haat-muted">{line.variantLabel}</p>
-                    ) : null}
-                    <p className="mt-1 font-display font-bold">{formatBDT(line.price)}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        aria-label={`${line.nameBn} থেকে একটি কমান`}
-                        className="grid size-8 place-items-center rounded border border-haat-green/20"
-                        onClick={() => setQuantity(line.id, line.quantity - 1)}
-                        type="button"
+              {cart.map((line) => {
+                const pricedItem = quote.items.find(
+                  (item) =>
+                    item.productId === line.productId && item.variantLabel === line.variantLabel,
+                );
+                const displayQuantity = pricedItem?.quantity ?? line.quantity;
+                return (
+                  <li className="cart-line" key={line.id}>
+                    <ProductImage
+                      className="cart-line-image"
+                      name={line.nameBn}
+                      variant={line.image}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        className="font-bold text-haat-green hover:text-haat-brick"
+                        href={`/products/${line.slug}`}
+                        onClick={() => setOpen(false)}
                       >
-                        <Minus aria-hidden="true" className="size-3.5" />
-                      </button>
-                      <span aria-live="polite" className="min-w-5 text-center">
-                        {line.quantity}
-                      </span>
-                      <button
-                        aria-label={`${line.nameBn} একটি বাড়ান`}
-                        className="grid size-8 place-items-center rounded border border-haat-green/20"
-                        disabled={line.quantity >= line.stock}
-                        onClick={() => setQuantity(line.id, line.quantity + 1)}
-                        type="button"
-                      >
-                        <Plus aria-hidden="true" className="size-3.5" />
-                      </button>
-                      <button
-                        aria-label={`${line.nameBn} সরান`}
-                        className="ml-1 grid size-8 place-items-center rounded text-haat-brick hover:bg-haat-brick/10"
-                        onClick={() => removeLine(line.id)}
-                        type="button"
-                      >
-                        <Trash2 aria-hidden="true" className="size-4" />
-                      </button>
+                        {line.nameBn}
+                      </Link>
+                      {line.variantLabel ? (
+                        <p className="mt-1 text-xs text-haat-muted">{line.variantLabel}</p>
+                      ) : null}
+                      <p className="mt-1 font-display font-bold">
+                        {pricedItem ? formatBDT(pricedItem.price) : 'এই বিকল্পটি স্টকে নেই'}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          aria-label={`${line.nameBn} থেকে একটি কমান`}
+                          className="grid size-8 place-items-center rounded border border-haat-green/20"
+                          disabled={displayQuantity <= 1}
+                          onClick={() => setQuantity(line.id, displayQuantity - 1)}
+                          type="button"
+                        >
+                          <Minus aria-hidden="true" className="size-3.5" />
+                        </button>
+                        <span aria-live="polite" className="min-w-5 text-center">
+                          {displayQuantity}
+                        </span>
+                        <button
+                          aria-label={`${line.nameBn} একটি বাড়ান`}
+                          className="grid size-8 place-items-center rounded border border-haat-green/20"
+                          disabled={!pricedItem || displayQuantity >= line.stock}
+                          onClick={() => setQuantity(line.id, displayQuantity + 1)}
+                          type="button"
+                        >
+                          <Plus aria-hidden="true" className="size-3.5" />
+                        </button>
+                        <button
+                          aria-label={`${line.nameBn} সরান`}
+                          className="ml-1 grid size-8 place-items-center rounded text-haat-brick hover:bg-haat-brick/10"
+                          onClick={() => removeLine(line.id)}
+                          type="button"
+                        >
+                          <Trash2 aria-hidden="true" className="size-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
             <footer className="cart-footer">
               <div className="mb-4 flex justify-between font-bold">

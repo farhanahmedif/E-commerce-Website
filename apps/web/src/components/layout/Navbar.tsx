@@ -10,6 +10,7 @@ import { categories as shopCategories } from '@/lib/mock/categories';
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const cartCount = useShopStore(selectCartCount);
+  const wishlistCount = useShopStore((state) => state.wishlist.length);
   const hydrated = useShopStore((state) => state.hasHydrated);
 
   return (
@@ -63,11 +64,14 @@ export function Navbar() {
             className="ml-auto flex shrink-0 items-center gap-1 sm:gap-3"
           >
             <Link
-              aria-label="Wishlist"
-              className="grid size-10 place-items-center rounded-md text-haat-green transition hover:bg-haat-green/10"
+              aria-label={`পছন্দের তালিকা, ${hydrated ? wishlistCount : 0}টি পণ্য`}
+              className="relative grid size-10 place-items-center rounded-md text-haat-green transition hover:bg-haat-green/10"
               href="/wishlist"
             >
               <Heart aria-hidden="true" className="size-5" />
+              <span className="absolute right-0 top-0 grid size-[18px] place-items-center rounded-full bg-haat-marigold text-[10px] font-bold text-haat-green">
+                {hydrated ? wishlistCount : 0}
+              </span>
             </Link>
             <Link
               aria-label={`Cart, ${hydrated ? cartCount : 0} items`}
@@ -82,10 +86,10 @@ export function Navbar() {
             <Link
               aria-label="লগইন / অ্যাকাউন্ট"
               className="hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-semibold text-haat-green transition hover:bg-haat-green/10 sm:flex"
-              href="/account"
+              href="/account/orders"
             >
               <UserRound aria-hidden="true" className="size-5" />
-              <span>লগইন</span>
+              <span>আমার অর্ডার</span>
             </Link>
           </nav>
         </div>
@@ -140,10 +144,10 @@ export function Navbar() {
             <div className="mx-auto flex max-w-[var(--content-width)] flex-col px-4 py-3 sm:px-6">
               <Link
                 className="rounded-md px-3 py-3 font-semibold text-haat-green hover:bg-haat-green/10 sm:hidden"
-                href="/account"
+                href="/account/orders"
                 onClick={() => setMenuOpen(false)}
               >
-                লগইন / অ্যাকাউন্ট
+                আমার অর্ডার
               </Link>
               {shopCategories.map((category) => (
                 <Link

@@ -39,3 +39,15 @@ NOT like a generic Shopify template.
 - Before coding: write a short plan (files, risks). After coding: run lint, type-check and build, fix errors yourself.
 - End every phase with: what was built, how to run it, how to test it, what is next.
 - If something is ambiguous, pick the most sensible option, state the assumption, continue.
+## Verification Rules (mandatory for every phase)
+1. Never run `next build` while `next dev` is running. Stop the dev server first.
+2. Run the dev server on port 3000 only. If the port is busy, stop the old process
+   instead of switching to another port.
+3. Do not change next.config, postcss.config, tailwind config or the CSS imports in
+   layout/globals.css unless the task requires it. If you do change them, re-verify styling.
+4. Before reporting a phase as done: delete apps/web/.next, run `npm run build`, then
+   confirm that a stylesheet exists under apps/web/.next/static/css and is larger than 5 KB.
+   Then start the app and confirm the home page HTML links a CSS file that returns HTTP 200.
+5. End every report with a line: "Styling check: PASS" or "Styling check: FAIL (reason)".
+6. If anything looks unstyled or broken, say so honestly. Never report DONE for work
+   you did not verify.
