@@ -3,16 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "apps/api"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @haatgo/web",
+    "dev:web": "npm run dev --workspace @haatgo/web",
+    "dev:api": "npm run dev --workspace @haatgo/api",
+    "dev": "concurrently -k -n web,api -c green,blue \"npm:dev:web\" \"npm:dev:api\"",
     "build": "npm run build --workspace @haatgo/web",
     "lint": "npm run lint --workspace @haatgo/web",
     "type-check": "npm run type-check --workspace @haatgo/web",
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "concurrently": "^10.0.6",
     "prettier": "^3.5.3"
   }
 }
