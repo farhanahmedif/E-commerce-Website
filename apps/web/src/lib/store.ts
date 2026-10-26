@@ -55,7 +55,7 @@ export const useShopStore = create<ShopState>()(
                     nameBn: product.nameBn,
                     slug: product.slug,
                     price: product.price,
-                    quantity: Math.min(product.stock, quantity),
+                    quantity: nextQuantity,
                   stock: stockLimit,
                     variantLabel,
                     image: product.image,
