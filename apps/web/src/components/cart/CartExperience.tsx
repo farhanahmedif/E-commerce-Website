@@ -84,7 +84,7 @@ export function CartExperience() {
           <div>
             <p className="text-xs font-bold text-haat-brick">আপনার বাজারের ঝুড়ি</p>
             <h2 className="font-display text-xl font-bold text-haat-green" id="cart-drawer-title">
-              কার্টে {cart.length} ধরনের পণ্য
+              কার্টে {cart.length.toLocaleString('bn-BD')} ধরনের পণ্য
             </h2>
           </div>
           <button
@@ -171,7 +171,7 @@ export function CartExperience() {
                           <Minus aria-hidden="true" className="size-3.5" />
                         </button>
                         <span aria-live="polite" className="min-w-5 text-center">
-                          {displayQuantity}
+                          {displayQuantity.toLocaleString('bn-BD')}
                         </span>
                         <button
                           aria-label={`${line.nameBn} একটি বাড়ান`}

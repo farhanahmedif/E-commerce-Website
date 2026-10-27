@@ -109,17 +109,53 @@ export function getPricingQuote(
   });
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const couponResult = couponCodeSchema.safeParse(rawCouponCode);
-  const couponCode = couponResult.success ? couponResult.data : '';
-  const discount = 0;
-  const couponError = couponResult.success ? '' : 'কুপন কোড ২০ অক্ষরের মধ্যে লিখুন।';
-  const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD;
+  const rawClean = (rawCouponCode || '').trim().toUpperCase();
+  let couponCode = '';
+  let discount = 0;
+  let couponError = '';
+  let couponFreeDelivery = false;
+
+  if (rawClean) {
+    if (!couponResult.success) {
+      couponError = 'কুপন কোড ২০ অক্ষরের মধ্যে লিখুন।';
+    } else if (rawClean === 'HAAT10') {
+      if (subtotal <= 0) {
+        couponError = 'ঝুড়িতে কোনো পণ্য নেই।';
+      } else {
+        couponCode = rawClean;
+        // 10% off, max ৳500 (50,000 poisha)
+        discount = Math.min(50_000, Math.round(subtotal * 0.1));
+      }
+    } else if (rawClean === 'FREESHIP') {
+      if (subtotal <= 0) {
+        couponError = 'ঝুড়িতে কোনো পণ্য নেই।';
+      } else {
+        couponCode = rawClean;
+        couponFreeDelivery = true;
+      }
+    } else if (rawClean === 'NEW50') {
+      // ৳50 (5,000 poisha) off over ৳500 (50,000 poisha)
+      if (subtotal < 50_000) {
+        couponError = 'NEW50 কুপনটি ৳ ৫০০ বা তার বেশি অর্ডারে প্রযোজ্য।';
+      } else {
+        couponCode = rawClean;
+        discount = 5_000;
+      }
+    } else {
+      couponError = 'এই কুপন কোডটি সঠিক নয়।';
+    }
+  }
+
+  const freeDelivery = couponFreeDelivery || subtotal >= FREE_DELIVERY_THRESHOLD;
   const deliveryCharge = freeDelivery ? 0 : DELIVERY_CHARGES[deliveryMethod];
+  const finalDiscount = Math.min(subtotal, discount);
+
   return {
     items,
     subtotal,
-    discount,
+    discount: finalDiscount,
     deliveryCharge,
-    total: Math.max(0, subtotal - discount + deliveryCharge),
+    total: Math.max(0, subtotal - finalDiscount + deliveryCharge),
     couponCode: couponError ? '' : couponCode,
     couponError,
   };

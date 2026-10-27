@@ -16,7 +16,7 @@ import { ArrowRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
 import { addressDivisions, getDistricts, getThanas } from '@/lib/bd-addresses';
 import { checkoutSchema, type CheckoutValues } from '@/lib/checkout-validation';
 import { formatBDT } from '@/lib/formatBDT';
-import { createBackendOrder, getDeliveryEstimate, paymentMethods } from '@/lib/orders';
+import { getDeliveryEstimate, paymentMethods, placeOrder } from '@/lib/orders';
 import { getPricingQuote, type DeliveryMethod } from '@/lib/pricing';
 import { useShopStore } from '@/lib/store';
 
@@ -191,7 +191,7 @@ export function CheckoutClient() {
       return;
     }
     setCouponCode(nextQuote.couponCode);
-    setCouponMessage('Order জমা হলে backend কুপনটি যাচাই করবে।');
+    setCouponMessage(`“${nextQuote.couponCode}” কুপনটি যুক্ত হয়েছে।`);
   }
 
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
@@ -214,10 +214,6 @@ export function CheckoutClient() {
       document.getElementById('checkout-coupon')?.focus();
       return;
     }
-    if (result.data.paymentMethod !== 'cod') {
-      setSubmitMessage('Backend-এ এখন শুধু Cash on Delivery order নেওয়া যায়।');
-      return;
-    }
     if (quote.items.length !== cart.length || quote.items.length === 0 || quote.total <= 0) {
       setSubmitMessage(
         'ঝুড়ির এক বা একাধিক পণ্য আর স্টকে নেই। কার্টে ফিরে সেগুলো সরিয়ে আবার চেষ্টা করুন।',
@@ -228,7 +224,7 @@ export function CheckoutClient() {
     setSubmitting(true);
     setSubmitMessage('অর্ডারটি তৈরি হচ্ছে…');
     try {
-      const order = await createBackendOrder({
+      const order = await placeOrder({
         items: quote.items,
         customerName: result.data.customerName,
         phone: result.data.phone,
@@ -254,7 +250,7 @@ export function CheckoutClient() {
       setSubmitMessage(
         error instanceof Error
           ? error.message
-          : 'Backend order তৈরি করতে পারেনি। আবার চেষ্টা করুন।',
+          : 'অর্ডার সম্পন্ন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।',
       );
       submitLock.current = false;
       setSubmitting(false);

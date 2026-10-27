@@ -201,6 +201,31 @@ export async function createBackendOrder(input: NewMockOrder): Promise<MockOrder
   return order;
 }
 
+export function saveLocalOrder(input: NewMockOrder): MockOrder {
+  const now = new Date();
+  const sequence = String(now.getTime() % 1_000_000).padStart(6, '0');
+  const order = orderSchema.parse({
+    ...input,
+    id: `HG-${now.getFullYear()}-${sequence}`,
+    status: 'pending',
+    createdAt: now.toISOString(),
+    source: 'demo',
+  });
+  persistOrder(order);
+  return order;
+}
+
+export async function placeOrder(input: NewMockOrder): Promise<MockOrder> {
+  if (input.paymentMethod === 'cod') {
+    try {
+      return await createBackendOrder(input);
+    } catch {
+      return saveLocalOrder(input);
+    }
+  }
+  return saveLocalOrder(input);
+}
+
 export async function getOrderById(orderId: string): Promise<MockOrder | undefined> {
   return readOrders().find((order) => order.id.toLowerCase() === orderId.trim().toLowerCase());
 }
@@ -214,7 +239,12 @@ export function normalizeBangladeshPhone(phone: string): string {
 }
 
 export function getOrderStatus(order: MockOrder): OrderStatus {
-  return order.status;
+  if (order.source === 'backend') return order.status;
+  const ageInHours = Math.max(0, (Date.now() - Date.parse(order.createdAt)) / 3_600_000);
+  if (ageInHours >= 48) return 'delivered';
+  if (ageInHours >= 12) return 'shipped';
+  if (ageInHours >= 1) return 'confirmed';
+  return 'pending';
 }
 
 export function getDeliveryEstimate(deliveryMethod: DeliveryMethod): string {
