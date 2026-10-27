@@ -1,10 +1,17 @@
-import { products, type MockProduct } from '@/lib/mock/products';
+import { getVariantStock, products, type MockProduct } from '@/lib/mock/products';
 import { z } from 'zod';
 
 export type DeliveryMethod = 'inside-dhaka' | 'outside-dhaka';
 export type PricingLineInput = {
   productId: string;
   quantity: number;
+  slug?: string;
+  nameBn?: string;
+  image?: string;
+  price?: number;
+  stock?: number;
+  variantSku?: string;
+  isSample?: boolean;
   variantLabel?: string;
 };
 export type PricedLine = {
@@ -15,6 +22,7 @@ export type PricedLine = {
   price: number;
   quantity: number;
   variantLabel: string;
+  variantSku?: string;
   lineTotal: number;
 };
 export type PricingQuote = {
@@ -35,18 +43,18 @@ export const DELIVERY_CHARGES: Record<DeliveryMethod, number> = {
 const couponCodeSchema = z.string().trim().toUpperCase().max(20);
 
 function resolveVariantStock(product: MockProduct, variantLabel: string): number {
-  if (!variantLabel) return product.stock;
-  const selections = new Map(
-    variantLabel.split(' · ').map((part) => {
-      const separator = part.indexOf(': ');
-      return separator < 0 ? ['', ''] : [part.slice(0, separator), part.slice(separator + 2)];
-    }),
-  );
-  const selectedStocks = product.variants.map((variant) => {
-    const selected = selections.get(variant.name);
-    return variant.options.find((option) => option.value === selected)?.stock ?? 0;
-  });
-  return selectedStocks.length ? Math.min(product.stock, ...selectedStocks) : product.stock;
+  if (product.variants.length === 0) return variantLabel ? 0 : product.stock;
+  if (!variantLabel) return 0;
+  const selections = new Map<string, string>();
+  for (const part of variantLabel.split(' · ')) {
+    const separator = part.indexOf(': ');
+    if (separator < 1) return 0;
+    const name = part.slice(0, separator);
+    if (selections.has(name)) return 0;
+    selections.set(name, part.slice(separator + 2));
+  }
+  if (selections.size !== product.variants.length) return 0;
+  return getVariantStock(product, Object.fromEntries(selections));
 }
 
 export function getPricingQuote(
@@ -55,9 +63,34 @@ export function getPricingQuote(
   deliveryMethod: DeliveryMethod,
 ): PricingQuote {
   const items = lines.flatMap((line) => {
-    const product = products.find((item) => item.id === line.productId);
-    if (!product || !Number.isInteger(line.quantity) || line.quantity <= 0) return [];
-    const stock = resolveVariantStock(product, line.variantLabel ?? '');
+    const sampleProduct =
+      line.isSample === false
+        ? undefined
+        : products.find(
+            (item) => item.id === line.productId && (!line.slug || item.slug === line.slug),
+          );
+    const product =
+      sampleProduct ??
+      (line.slug && line.nameBn && line.image && line.price !== undefined
+        ? {
+            id: line.productId,
+            slug: line.slug,
+            nameBn: line.nameBn,
+            image: line.image,
+            price: line.price,
+            stock: line.stock ?? 0,
+          }
+        : undefined);
+    if (
+      !product ||
+      !Number.isSafeInteger(line.quantity) ||
+      line.quantity <= 0 ||
+      !Number.isSafeInteger(product.price * line.quantity)
+    )
+      return [];
+    const stock = sampleProduct
+      ? resolveVariantStock(sampleProduct, line.variantLabel ?? '')
+      : (line.stock ?? 0);
     const quantity = Math.min(stock, line.quantity);
     if (quantity <= 0) return [];
     return [
@@ -69,6 +102,7 @@ export function getPricingQuote(
         price: product.price,
         quantity,
         variantLabel: line.variantLabel ?? '',
+        ...(line.variantSku ? { variantSku: line.variantSku } : {}),
         lineTotal: product.price * quantity,
       },
     ];
@@ -76,16 +110,9 @@ export function getPricingQuote(
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const couponResult = couponCodeSchema.safeParse(rawCouponCode);
   const couponCode = couponResult.success ? couponResult.data : '';
-  let discount = 0;
-  let couponError = couponResult.success ? '' : 'কুপন কোড ২০ অক্ষরের মধ্যে লিখুন।';
-  if (couponCode === 'HAAT10') discount = Math.min(Math.floor(subtotal * 0.1), 50_000);
-  else if (couponCode === 'NEW50') {
-    if (subtotal > 50_000) discount = 5_000;
-    else couponError = 'NEW50 কুপন পেতে ৳ ৫০০-এর বেশি দামের পণ্য নিন।';
-  } else if (couponCode && couponCode !== 'FREESHIP') {
-    couponError = 'এই কুপনটি চেনা যাচ্ছে না। আবার দেখে লিখুন।';
-  }
-  const freeDelivery = couponCode === 'FREESHIP' || subtotal >= FREE_DELIVERY_THRESHOLD;
+  const discount = 0;
+  const couponError = couponResult.success ? '' : 'কুপন কোড ২০ অক্ষরের মধ্যে লিখুন।';
+  const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD;
   const deliveryCharge = freeDelivery ? 0 : DELIVERY_CHARGES[deliveryMethod];
   return {
     items,

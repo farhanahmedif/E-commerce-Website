@@ -11,7 +11,9 @@ export type CartLine = {
   quantity: number;
   stock: number;
   variantLabel: string;
+  variantSku?: string;
   image: string;
+  isSample?: boolean;
 };
 
 type ShopState = {
@@ -25,6 +27,8 @@ type ShopState = {
     quantity?: number,
     variantLabel?: string,
     stockLimit?: number,
+    variantSku?: string,
+    unitPrice?: number,
   ) => void;
   toggleWishlist: (productId: string) => void;
   moveToWishlist: (lineId: string) => void;
@@ -46,8 +50,22 @@ export const useShopStore = create<ShopState>()(
       couponCode: '',
       cartDrawerOpen: false,
       hasHydrated: false,
-      addToCart: (product, quantity = 1, variantLabel = '', stockLimit = product.stock) =>
+      addToCart: (
+        product,
+        quantity = 1,
+        variantLabel = '',
+        stockLimit = product.stock,
+        variantSku,
+        unitPrice = product.price,
+      ) =>
         set((state) => {
+          if (
+            !Number.isSafeInteger(quantity) ||
+            quantity <= 0 ||
+            !Number.isSafeInteger(stockLimit) ||
+            stockLimit <= 0
+          )
+            return state;
           const lineId = `${product.id}:${variantLabel}`;
           const found = state.cart.find((line) => line.id === lineId);
           const currentQuantity = found?.quantity ?? 0;
@@ -66,11 +84,13 @@ export const useShopStore = create<ShopState>()(
                     productId: product.id,
                     nameBn: product.nameBn,
                     slug: product.slug,
-                    price: product.price,
+                    price: unitPrice,
                     quantity: nextQuantity,
                     stock: stockLimit,
                     variantLabel,
+                    ...(variantSku ? { variantSku } : {}),
                     image: product.image,
+                    isSample: product.isSample ?? true,
                   },
                 ],
           };
@@ -99,6 +119,7 @@ export const useShopStore = create<ShopState>()(
       setCartDrawerOpen: (open) => set({ cartDrawerOpen: open }),
       setCartQuantity: (lineId, quantity) =>
         set((state) => {
+          if (!Number.isSafeInteger(quantity)) return state;
           if (quantity <= 0) {
             const cart = state.cart.filter((line) => line.id !== lineId);
             return { cart, couponCode: cart.length ? state.couponCode : '' };

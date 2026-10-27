@@ -67,9 +67,17 @@ export function OrderSuccessClient({ orderId }: { orderId: string }) {
           <span className="order-success-mark">
             <Check aria-hidden="true" className="size-7" />
           </span>
-          <p className="listing-eyebrow">আপনার অর্ডারটি হাটে পৌঁছেছে</p>
+          <p className="listing-eyebrow">
+            {order.source === 'backend'
+              ? 'Backend-এ অর্ডার সংরক্ষিত হয়েছে'
+              : 'পরীক্ষামূলক অর্ডার সংরক্ষিত হয়েছে'}
+          </p>
           <h1 className="order-success-title">ধন্যবাদ, {order.customerName}!</h1>
-          <p>আপনার পছন্দের পণ্যগুলো যত্ন করে গুছিয়ে পাঠানোর প্রস্তুতি নিচ্ছি।</p>
+          <p>
+            {order.source === 'backend'
+              ? 'অর্ডারটি backend database-এ সংরক্ষিত হয়েছে। বিক্রেতা dashboard বা delivery service এখনো যুক্ত হয়নি।'
+              : 'এটি শুধু এই browser-এ রাখা demo order। বিক্রেতা অর্ডারটি পাননি, তাই পণ্য পাঠানো হবে না।'}
+          </p>
           <strong className="order-success-id">অর্ডার নম্বর: {order.id}</strong>
           <div className="order-success-card order-success-details">
             <h2>অর্ডারের সারাংশ</h2>
@@ -112,7 +120,11 @@ export function OrderSuccessClient({ orderId }: { orderId: string }) {
             <p>
               ডেলিভারি ঠিকানা: {order.address}, {order.upazila}, {order.district}, {order.division}
             </p>
-            <p>সম্ভাব্য ডেলিভারি: {getDeliveryEstimate(order.deliveryMethod)}</p>
+            <p>
+              {order.source === 'backend'
+                ? 'Courier service যুক্ত হলে delivery estimate দেখানো হবে।'
+                : `সম্ভাব্য ডেলিভারি: ${getDeliveryEstimate(order.deliveryMethod)} (নমুনা estimate)`}
+            </p>
             {order.paymentMethod !== 'cod' ? (
               <div className="payment-demo-panel">
                 <strong>অনলাইন পেমেন্ট নির্দেশনা (ডেমো)</strong>

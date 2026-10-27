@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 const palettes: Record<string, [string, string, string]> = {
   woven: ['#d18c55', '#0f5132', '#f2a900'],
   honey: ['#f2bd43', '#a94b2e', '#fff0bd'],
@@ -16,12 +18,14 @@ const palettes: Record<string, [string, string, string]> = {
 export function ProductImage({
   variant,
   name,
+  imageUrl,
   secondary = false,
   view = 0,
   className = '',
 }: {
   variant: string;
   name: string;
+  imageUrl?: string;
   secondary?: boolean;
   view?: number;
   className?: string;
@@ -30,7 +34,7 @@ export function ProductImage({
   return (
     <div
       aria-label={`${name}, illustrated product preview`}
-      className={`product-art product-art-view-${view} ${className}`}
+      className={`product-art product-art-view-${view} ${imageUrl ? 'has-product-image' : ''} ${className}`}
       role="img"
       style={
         {
@@ -40,7 +44,18 @@ export function ProductImage({
         } as React.CSSProperties
       }
     >
-      <span aria-hidden="true" className={`art-object art-${variant}`} />
+      {imageUrl ? (
+        <Image
+          alt={name}
+          className="object-cover"
+          fill
+          sizes="(max-width: 640px) 90vw, 600px"
+          src={imageUrl}
+          unoptimized
+        />
+      ) : (
+        <span aria-hidden="true" className={`art-object art-${variant}`} />
+      )}
       <span aria-hidden="true" className="art-sun" />
       <span aria-hidden="true" className="art-caption">
         হাটের পছন্দ

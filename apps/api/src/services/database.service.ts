@@ -1,5 +1,12 @@
 import { prisma } from '../lib/prisma';
 
+export class DatabaseUnavailableError extends Error {
+  constructor() {
+    super('The database is not configured.');
+    this.name = 'DatabaseUnavailableError';
+  }
+}
+
 export type DatabaseHealth = {
   status: 'connected' | 'not_configured' | 'unavailable';
 };

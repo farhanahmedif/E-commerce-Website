@@ -54,9 +54,12 @@ export function HeroBoard() {
             >
               হাটে ঢুকুন <ArrowDownRight aria-hidden="true" className="size-5" />
             </Link>
-            <span className="rotate-2 border-b-2 border-dashed border-haat-brick px-2 py-1 font-display text-sm font-bold text-haat-brick">
-              সারা দেশে পৌঁছে দিই
-            </span>
+            <Link
+              className="rounded-md border-2 border-haat-green px-4 py-2.5 font-bold text-haat-green transition hover:bg-haat-green/10 focus-visible:outline-offset-4"
+              href="/products"
+            >
+              সব পণ্য দেখুন
+            </Link>
           </div>
         </div>
         <div

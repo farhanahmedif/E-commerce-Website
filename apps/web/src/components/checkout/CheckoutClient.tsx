@@ -16,7 +16,7 @@ import { ArrowRight, Check, ChevronDown, ShieldCheck } from 'lucide-react';
 import { addressDivisions, getDistricts, getThanas } from '@/lib/bd-addresses';
 import { checkoutSchema, type CheckoutValues } from '@/lib/checkout-validation';
 import { formatBDT } from '@/lib/formatBDT';
-import { getDeliveryEstimate, paymentMethods, saveOrder } from '@/lib/orders';
+import { createBackendOrder, getDeliveryEstimate, paymentMethods } from '@/lib/orders';
 import { getPricingQuote, type DeliveryMethod } from '@/lib/pricing';
 import { useShopStore } from '@/lib/store';
 
@@ -103,11 +103,31 @@ export function CheckoutClient() {
   const quote = useMemo(
     () =>
       getPricingQuote(
-        cart.map(({ productId, quantity, variantLabel }) => ({
-          productId,
-          quantity,
-          variantLabel,
-        })),
+        cart.map(
+          ({
+            productId,
+            quantity,
+            variantLabel,
+            slug,
+            nameBn,
+            image,
+            price,
+            stock,
+            variantSku,
+            isSample,
+          }) => ({
+            productId,
+            quantity,
+            variantLabel,
+            slug,
+            nameBn,
+            image,
+            price,
+            stock,
+            variantSku,
+            isSample,
+          }),
+        ),
         couponCode,
         values.deliveryMethod,
       ),
@@ -138,7 +158,31 @@ export function CheckoutClient() {
 
   function applyCoupon() {
     const nextQuote = getPricingQuote(
-      cart.map(({ productId, quantity, variantLabel }) => ({ productId, quantity, variantLabel })),
+      cart.map(
+        ({
+          productId,
+          quantity,
+          variantLabel,
+          slug,
+          nameBn,
+          image,
+          price,
+          stock,
+          variantSku,
+          isSample,
+        }) => ({
+          productId,
+          quantity,
+          variantLabel,
+          slug,
+          nameBn,
+          image,
+          price,
+          stock,
+          variantSku,
+          isSample,
+        }),
+      ),
       couponDraft,
       values.deliveryMethod,
     );
@@ -147,7 +191,7 @@ export function CheckoutClient() {
       return;
     }
     setCouponCode(nextQuote.couponCode);
-    setCouponMessage(`“${nextQuote.couponCode}” কুপনটি যোগ হয়েছে।`);
+    setCouponMessage('Order জমা হলে backend কুপনটি যাচাই করবে।');
   }
 
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
@@ -170,15 +214,21 @@ export function CheckoutClient() {
       document.getElementById('checkout-coupon')?.focus();
       return;
     }
-    if (quote.items.length === 0 || quote.total <= 0) {
-      setSubmitMessage('ঝুড়িতে পণ্য পাওয়া যাচ্ছে না। আবার পণ্য বেছে নিন।');
+    if (result.data.paymentMethod !== 'cod') {
+      setSubmitMessage('Backend-এ এখন শুধু Cash on Delivery order নেওয়া যায়।');
+      return;
+    }
+    if (quote.items.length !== cart.length || quote.items.length === 0 || quote.total <= 0) {
+      setSubmitMessage(
+        'ঝুড়ির এক বা একাধিক পণ্য আর স্টকে নেই। কার্টে ফিরে সেগুলো সরিয়ে আবার চেষ্টা করুন।',
+      );
       return;
     }
     submitLock.current = true;
     setSubmitting(true);
     setSubmitMessage('অর্ডারটি তৈরি হচ্ছে…');
     try {
-      const order = await saveOrder({
+      const order = await createBackendOrder({
         items: quote.items,
         customerName: result.data.customerName,
         phone: result.data.phone,
@@ -200,8 +250,12 @@ export function CheckoutClient() {
       });
       clearCart();
       router.push(`/order/success/${order.id}`);
-    } catch {
-      setSubmitMessage('অর্ডারটি সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।');
+    } catch (error: unknown) {
+      setSubmitMessage(
+        error instanceof Error
+          ? error.message
+          : 'Backend order তৈরি করতে পারেনি। আবার চেষ্টা করুন।',
+      );
       submitLock.current = false;
       setSubmitting(false);
     }
@@ -223,7 +277,11 @@ export function CheckoutClient() {
       <div className="mx-auto max-w-[var(--content-width)] px-4 sm:px-6 lg:px-8">
         <p className="listing-eyebrow">আপনার কেনাকাটার শেষ ধাপ</p>
         <h1 className="checkout-title">অর্ডার সম্পন্ন করুন</h1>
-        <p className="checkout-lead">ঠিকানা আর পেমেন্টের তথ্য দিন—বাকি ব্যবস্থা হাটGo করবে।</p>
+        <p className="checkout-lead">তথ্য দিয়ে Cash on Delivery order backend-এ জমা দিন।</p>
+        <p className="payment-demo-panel" role="note">
+          Order backend-এ সংরক্ষিত হবে; বিক্রেতা dashboard, বাস্তব payment gateway বা delivery
+          service এখনো যুক্ত হয়নি।
+        </p>
         <form className="checkout-layout" noValidate onSubmit={submitOrder}>
           <div className="checkout-sections">
             <section aria-labelledby="contact-heading" className="checkout-section">
@@ -231,7 +289,7 @@ export function CheckoutClient() {
                 <span>১</span>
                 <div>
                   <h2 id="contact-heading">যোগাযোগ ও ঠিকানা</h2>
-                  <p>অর্ডার পৌঁছে দিতে এই তথ্যগুলো লাগবে।</p>
+                  <p>Order তৈরি করতে নাম, ফোন ও delivery address backend-এ পাঠানো হবে।</p>
                 </div>
               </div>
               <div className="checkout-fields-grid">
@@ -437,6 +495,7 @@ export function CheckoutClient() {
                   >
                     <input
                       checked={values.paymentMethod === method}
+                      disabled={method !== 'cod'}
                       name="paymentMethod"
                       onChange={() => update('paymentMethod', method)}
                       type="radio"
@@ -445,7 +504,7 @@ export function CheckoutClient() {
                       <Check aria-hidden="true" />
                     </span>
                     <span>{paymentNames[method]}</span>
-                    {method !== 'cod' ? <small>ডেমো</small> : null}
+                    {method !== 'cod' ? <small>এখনো চালু হয়নি</small> : null}
                   </label>
                 ))}
               </div>
@@ -490,8 +549,8 @@ export function CheckoutClient() {
                 </div>
               ) : (
                 <p className="payment-cod-note">
-                  <ShieldCheck aria-hidden="true" className="size-5" /> পণ্য হাতে পেয়ে ডেলিভারি
-                  কর্মীকে টাকা দিন।
+                  <ShieldCheck aria-hidden="true" className="size-5" /> Order জমা হলে payment হবে
+                  delivery-র সময়; courier service এখনো যুক্ত হয়নি।
                 </p>
               )}
             </section>
@@ -548,7 +607,9 @@ export function CheckoutClient() {
                 >
                   {quote.couponError ||
                     couponMessage ||
-                    (couponCode ? `“${couponCode}” যোগ হয়েছে।` : 'HAAT10 · FREESHIP · NEW50')}
+                    (couponCode
+                      ? 'Order জমা হলে backend কুপনটি যাচাই করবে।'
+                      : 'যে coupon code আছে সেটি লিখুন; backend যাচাই করবে।')}
                 </p>
               </div>
               <div className="cart-summary-row">
@@ -566,10 +627,11 @@ export function CheckoutClient() {
                 <span>{quote.deliveryCharge ? formatBDT(quote.deliveryCharge) : 'ফ্রি'}</span>
               </div>
               <p className="checkout-estimate">
-                আনুমানিক ডেলিভারি: {getDeliveryEstimate(values.deliveryMethod)}
+                আনুমানিক ডেলিভারি: {getDeliveryEstimate(values.deliveryMethod)} · final coupon ও
+                total backend যাচাই করবে।
               </p>
               <div aria-live="polite" className="cart-summary-total">
-                <span>সর্বমোট</span>
+                <span>আনুমানিক সর্বমোট</span>
                 <strong>{formatBDT(quote.total)}</strong>
               </div>
               <p aria-live="polite" className="checkout-submit-message">
@@ -580,12 +642,12 @@ export function CheckoutClient() {
                 disabled={submitting || Boolean(quote.couponError)}
                 type="submit"
               >
-                {submitting ? 'অর্ডার তৈরি হচ্ছে…' : 'অর্ডার নিশ্চিত করুন'}{' '}
+                {submitting ? 'অর্ডার পাঠানো হচ্ছে…' : 'Cash on Delivery order করুন'}{' '}
                 <ArrowRight aria-hidden="true" className="size-4" />
               </button>
               <p className="checkout-safe-note">
-                <ShieldCheck aria-hidden="true" className="size-4" /> আপনার তথ্য শুধু এই ডেমো
-                অর্ডারের জন্য সংরক্ষিত হবে।
+                <ShieldCheck aria-hidden="true" className="size-4" /> Order-এর contact ও address
+                backend database-এ সংরক্ষিত হবে।
               </p>
             </div>
           </details>

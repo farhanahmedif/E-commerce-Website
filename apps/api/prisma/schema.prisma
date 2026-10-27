@@ -30,6 +30,11 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum DeliveryZone {
+  INSIDE_DHAKA
+  OUTSIDE_DHAKA
+}
+
 enum PaymentMethod {
   COD
   BKASH
@@ -186,6 +191,7 @@ model Order {
   status         OrderStatus   @default(PENDING)
   paymentStatus  PaymentStatus @default(PENDING)
   paymentMethod  PaymentMethod
+  deliveryZone   DeliveryZone  @default(INSIDE_DHAKA)
   subtotal       Int
   discount       Int           @default(0)
   deliveryCharge Int           @default(0)

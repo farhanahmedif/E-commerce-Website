@@ -24,6 +24,7 @@ export type MockProduct = {
   stock: number;
   badge: string;
   image: string;
+  imageUrls?: string[];
   images: string[];
   brand: string;
   description: { bn: string; en: string };
@@ -32,7 +33,70 @@ export type MockProduct = {
   tags: string[];
   createdAt: string;
   reviews: ProductReview[];
+  isSample?: boolean;
+  variantSkuByLabel?: Record<string, string>;
+  variantStockByLabel?: Record<string, number>;
+  variantPriceByLabel?: Record<string, number>;
 };
+
+export function getDefaultVariantSelections(product: MockProduct): Record<string, string> {
+  const availableVariant = Object.entries(product.variantStockByLabel ?? {}).find(
+    ([, stock]) => stock > 0,
+  )?.[0];
+  if (availableVariant) {
+    return Object.fromEntries(
+      availableVariant
+        .split(' · ')
+        .map((selection) => {
+          const separator = selection.indexOf(': ');
+          return separator < 0
+            ? null
+            : [selection.slice(0, separator), selection.slice(separator + 2)];
+        })
+        .filter((selection): selection is [string, string] => selection !== null),
+    );
+  }
+  return Object.fromEntries(
+    product.variants.map((variant) => [
+      variant.name,
+      variant.options.find((option) => option.stock > 0)?.value ?? variant.options[0]?.value ?? '',
+    ]),
+  );
+}
+
+export function getVariantStock(product: MockProduct, selections: Record<string, string>): number {
+  if (product.variantStockByLabel) {
+    const label = product.variants
+      .map((variant) => `${variant.name}: ${selections[variant.name] ?? ''}`)
+      .join(' · ');
+    return Math.max(0, product.variantStockByLabel[label] ?? 0);
+  }
+  if (product.variants.length === 0) return product.stock;
+  const optionStocks = product.variants.map(
+    (variant) => variant.options.find((option) => option.value === selections[variant.name])?.stock,
+  );
+  const validStocks = optionStocks.filter((stock): stock is number => stock !== undefined);
+  if (validStocks.length !== product.variants.length) return 0;
+  return Math.max(0, Math.min(product.stock, ...validStocks));
+}
+
+export function getVariantSku(
+  product: MockProduct,
+  selections: Record<string, string>,
+): string | undefined {
+  if (!product.variantSkuByLabel) return undefined;
+  const label = product.variants
+    .map((variant) => `${variant.name}: ${selections[variant.name] ?? ''}`)
+    .join(' · ');
+  return product.variantSkuByLabel[label];
+}
+
+export function getVariantPrice(product: MockProduct, selections: Record<string, string>): number {
+  const label = product.variants
+    .map((variant) => `${variant.name}: ${selections[variant.name] ?? ''}`)
+    .join(' · ');
+  return product.variantPriceByLabel?.[label] ?? product.price;
+}
 
 type ProductSeed = Pick<
   MockProduct,
@@ -556,6 +620,8 @@ export const products: MockProduct[] = seeds.map((seed, index) => {
   const options = variants.flatMap((variant) => variant.options.map((option) => option.value));
   return {
     ...seed,
+    rating: reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length,
+    reviewCount: reviews.length,
     images: [`${seed.image}-front`, `${seed.image}-detail`, `${seed.image}-back`],
     brand: categoryBrand[seed.category]!,
     description: { bn: `${seed.nameBn}—${copy.bn}`, en: `${seed.nameEn}. ${copy.en}` },
@@ -571,6 +637,7 @@ export const products: MockProduct[] = seeds.map((seed, index) => {
     ],
     createdAt: new Date(Date.UTC(2025, 8 + (index % 4), (index % 27) + 1)).toISOString(),
     reviews,
+    isSample: true,
   };
 });
 

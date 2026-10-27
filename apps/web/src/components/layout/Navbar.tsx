@@ -84,7 +84,7 @@ export function Navbar() {
               </span>
             </Link>
             <Link
-              aria-label="লগইন / অ্যাকাউন্ট"
+              aria-label="এই browser-এর নমুনা অর্ডার"
               className="hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-semibold text-haat-green transition hover:bg-haat-green/10 sm:flex"
               href="/account/orders"
             >
@@ -130,7 +130,7 @@ export function Navbar() {
               {category.nameBn}
             </Link>
           ))}
-          <Link className="ml-auto text-haat-brick hover:underline" href="/offers">
+          <Link className="ml-auto text-haat-brick hover:underline" href="/products?onSale=true">
             আজকের অফার
           </Link>
         </nav>
@@ -161,7 +161,7 @@ export function Navbar() {
               ))}
               <Link
                 className="rounded-md px-3 py-3 font-semibold text-haat-brick hover:bg-haat-brick/5"
-                href="/offers"
+                href="/products?onSale=true"
                 onClick={() => setMenuOpen(false)}
               >
                 আজকের অফার

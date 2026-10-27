@@ -8,9 +8,17 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { Heart, Minus, Plus, Star, X, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
-import type { MockProduct, ProductReview } from '@/lib/mock/products';
+import {
+  getDefaultVariantSelections,
+  getVariantSku,
+  getVariantPrice,
+  getVariantStock,
+  type MockProduct,
+  type ProductReview,
+} from '@/lib/mock/products';
 import { formatBDT } from '@/lib/formatBDT';
 import { useShopStore } from '@/lib/store';
 import { ProductImage } from './ProductImage';
@@ -36,18 +44,12 @@ export function ProductDetail({
   product: MockProduct;
   related: MockProduct[];
 }) {
+  const router = useRouter();
   const [view, setView] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [tab, setTab] = useState<(typeof tabs)[number]>('বিস্তারিত');
   const [selected, setSelected] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      product.variants.map((variant) => [
-        variant.name,
-        variant.options.find((option) => option.stock > 0)?.value ??
-          variant.options[0]?.value ??
-          '',
-      ]),
-    ),
+    getDefaultVariantSelections(product),
   );
   const [quantity, setQuantity] = useState(1);
   const [reviews, setReviews] = useState<ProductReview[]>(product.reviews);
@@ -57,17 +59,15 @@ export function ProductDetail({
   const addToCart = useShopStore((state) => state.addToCart);
   const wished = useShopStore((state) => state.wishlist.includes(product.id));
   const toggleWishlist = useShopStore((state) => state.toggleWishlist);
-  const selectedOptions = product.variants.map((variant) =>
-    variant.options.find((option) => option.value === selected[variant.name]),
-  );
-  const availableStock = selectedOptions.some((option) => !option)
-    ? product.stock
-    : Math.min(product.stock, ...selectedOptions.map((option) => option!.stock));
+  const availableStock = getVariantStock(product, selected);
   const variantLabel = product.variants
     .map((variant) => `${variant.name}: ${selected[variant.name]}`)
     .join(' · ');
-  const discount = Math.round((1 - product.price / product.oldPrice) * 100);
-  const savings = product.oldPrice - product.price;
+  const variantSku = getVariantSku(product, selected);
+  const selectedPrice = getVariantPrice(product, selected);
+  const discount =
+    product.oldPrice > selectedPrice ? Math.round((1 - selectedPrice / product.oldPrice) * 100) : 0;
+  const savings = product.oldPrice - selectedPrice;
   const average = reviews.length
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
@@ -117,7 +117,7 @@ export function ProductDetail({
       date: new Date().toISOString().slice(0, 10),
     };
     setReviews((current) => [newReview, ...current]);
-    setReviewMessage('ধন্যবাদ! আপনার মতামত এই পাতায় যোগ হয়েছে।');
+    setReviewMessage('মতামতটি শুধু এই page-এ অস্থায়ীভাবে যোগ হয়েছে; সংরক্ষিত হয়নি।');
     event.currentTarget.reset();
   }
   function changeView(event: ReactKeyboardEvent<HTMLElement>) {
@@ -126,9 +126,11 @@ export function ProductDetail({
       setView((current) => (current + product.images.length - 1) % product.images.length);
   }
   function buyNow() {
-    addToCart(product, quantity, variantLabel, availableStock);
+    addToCart(product, quantity, variantLabel, availableStock, variantSku, selectedPrice);
+    useShopStore.getState().setCartDrawerOpen(false);
+    router.push('/checkout');
   }
-  const reviewCount = product.reviewCount + Math.max(0, reviews.length - product.reviews.length);
+  const reviewCount = reviews.length;
   return (
     <main className="product-detail-page">
       <Container>
@@ -149,6 +151,7 @@ export function ProductDetail({
             >
               <ProductImage
                 className="detail-art"
+                imageUrl={product.imageUrls?.[view] ?? product.imageUrls?.[0]}
                 name={product.nameBn}
                 variant={product.image}
                 view={view}
@@ -168,6 +171,7 @@ export function ProductDetail({
                 >
                   <ProductImage
                     name={`${product.nameBn} ${index + 1}`}
+                    imageUrl={product.imageUrls?.[index]}
                     variant={product.image}
                     view={index}
                   />
@@ -181,17 +185,25 @@ export function ProductDetail({
             </p>
             <h1>{product.nameBn}</h1>
             <p className="product-english-title">{product.nameEn}</p>
-        <button className="product-rating-link" onClick={() => setTab('ক্রেতার কথা')} type="button">
+            <button
+              className="product-rating-link"
+              onClick={() => setTab('ক্রেতার কথা')}
+              type="button"
+            >
               <Star aria-hidden="true" className="size-4 fill-haat-marigold text-haat-marigold" />
               <strong>{average.toFixed(1)}</strong>
               <span>({reviewCount.toLocaleString('bn-BD')}টি মতামত)</span>
-        </button>
+            </button>
             <div className="detail-prices">
-              <span className="detail-current-price">{formatBDT(product.price)}</span>
-              <span className="detail-old-price">{formatBDT(product.oldPrice)}</span>
-              <span className="discount-stamp">-{discount}% ছাড়</span>
+              <span className="detail-current-price">{formatBDT(selectedPrice)}</span>
+              {product.oldPrice > selectedPrice ? (
+                <>
+                  <span className="detail-old-price">{formatBDT(product.oldPrice)}</span>
+                  <span className="discount-stamp">-{discount}% ছাড়</span>
+                </>
+              ) : null}
             </div>
-            <p className="savings-copy">সাশ্রয় {formatBDT(savings)}</p>
+            {savings > 0 ? <p className="savings-copy">সাশ্রয় {formatBDT(savings)}</p> : null}
             {product.variants.map((variant) => (
               <fieldset className="variant-fieldset" key={variant.name}>
                 <legend>
@@ -253,7 +265,16 @@ export function ProductDetail({
               <button
                 className="add-cart-button"
                 disabled={availableStock <= 0}
-              onClick={() => addToCart(product, quantity, variantLabel, availableStock)}
+                onClick={() =>
+                  addToCart(
+                    product,
+                    quantity,
+                    variantLabel,
+                    availableStock,
+                    variantSku,
+                    selectedPrice,
+                  )
+                }
                 type="button"
               >
                 <ShoppingBag aria-hidden="true" className="size-5" /> কার্টে যোগ করুন
@@ -278,12 +299,12 @@ export function ProductDetail({
             </button>
             <div className="delivery-summary">
               <p>
-                <strong>ঢাকায়:</strong> ১–২ কার্যদিবস
+                <strong>নমুনা estimate · ঢাকা:</strong> ১–২ দিন
               </p>
               <p>
-                <strong>ঢাকার বাইরে:</strong> ২–৪ কার্যদিবস
+                <strong>ঢাকার বাইরে:</strong> ৩–৫ দিন
               </p>
-              <p>ক্যাশ অন ডেলিভারি আছে · পছন্দ না হলে ৭ দিনের মধ্যে ফেরত দিন</p>
+              <p>শুধু checkout-এর demo-তে COD বাছাই করা যায়; বাস্তব delivery বা return চালু নেই।</p>
             </div>
           </section>
         </div>
@@ -310,10 +331,12 @@ export function ProductDetail({
                 <h2>পণ্যের গল্প</h2>
                 <p>{product.description.bn}</p>
                 <p lang="en">{product.description.en}</p>
-                <p>
-                  প্রতিটি পণ্য বিক্রেতার কাছ থেকে বাছাই করে সংগ্রহ করা হয়। স্ক্রিনভেদে রঙে সামান্য
-                  পার্থক্য হতে পারে।
-                </p>
+                {product.isSample ? (
+                  <p>
+                    এই catalog-এর পণ্য, brand, বিবরণ ও দাম নমুনা। বাস্তব পণ্যের তথ্য বিক্রেতার কাছ
+                    থেকে এখনো যাচাই করা হয়নি।
+                  </p>
+                ) : null}
               </div>
             ) : null}
             {tab === 'বৈশিষ্ট্য' ? (
@@ -346,6 +369,11 @@ export function ProductDetail({
             {tab === 'ক্রেতার কথা' ? (
               <section className="reviews-section" id="product-reviews">
                 <h2>ক্রেতাদের মতামত</h2>
+                <p className="checkout-safe-note">
+                  {product.isSample
+                    ? 'এগুলো নমুনা review; বাস্তব ক্রেতার মতামত নয়। আপনার লেখা মতামতও শুধু এই page-এ অস্থায়ীভাবে দেখা যাবে।'
+                    : 'এখানে catalog-এ সংরক্ষিত review দেখানো হচ্ছে। নতুন মতামত এখন শুধু page-এ অস্থায়ীভাবে দেখা যাবে।'}
+                </p>
                 <div className="review-summary">
                   <div>
                     <strong>{average.toFixed(1)}</strong>
@@ -369,7 +397,9 @@ export function ProductDetail({
                   </div>
                 </div>
                 <form className="review-form" onSubmit={onReviewSubmit}>
-                  <h3>আপনার অভিজ্ঞতা লিখুন</h3>
+                  <h3>
+                    {product.isSample ? 'নমুনা মতামত যোগ করে দেখুন' : 'মতামত লিখে preview দেখুন'}
+                  </h3>
                   <div className="review-form-grid">
                     <label>
                       আপনার নাম
@@ -418,12 +448,12 @@ export function ProductDetail({
               <div className="delivery-details">
                 <h2>ডেলিভারি ও ফেরত</h2>
                 <p>
-                  ঢাকার ভেতরে সাধারণত ১–২ কার্যদিবস এবং ঢাকার বাইরে ২–৪ কার্যদিবসের মধ্যে পৌঁছায়।
-                  প্রত্যন্ত এলাকায় আরও কিছুটা সময় লাগতে পারে।
+                  এই demo-তে ঢাকার জন্য ১–২ দিন ও ঢাকার বাইরে ৩–৫ দিনের নমুনা estimate দেখানো হয়।
+                  বাস্তব courier service বা delivery estimate এখনো যুক্ত নেই।
                 </p>
                 <p>
-                  পণ্য হাতে পেয়ে ক্যাশ অন ডেলিভারিতে মূল্য দিতে পারবেন। পণ্য পাওয়ার ৭ দিনের মধ্যে
-                  অব্যবহৃত অবস্থায় ফেরতের অনুরোধ জানান।
+                  COD কেবল checkout-এর নমুনা option। বাস্তব payment, delivery, return বা refund
+                  ব্যবস্থা চালু হয়নি।
                 </p>
               </div>
             ) : null}
@@ -441,10 +471,12 @@ export function ProductDetail({
           </section>
         ) : null}
         <div className="mobile-sticky-buy">
-          <span>{formatBDT(product.price)}</span>
+          <span>{formatBDT(selectedPrice)}</span>
           <button
             disabled={availableStock <= 0}
-          onClick={() => addToCart(product, quantity, variantLabel, availableStock)}
+            onClick={() =>
+              addToCart(product, quantity, variantLabel, availableStock, variantSku, selectedPrice)
+            }
             type="button"
           >
             কার্টে যোগ করুন
@@ -487,6 +519,7 @@ export function ProductDetail({
               </button>
               <ProductImage
                 className="lightbox-art"
+                imageUrl={product.imageUrls?.[view] ?? product.imageUrls?.[0]}
                 name={product.nameBn}
                 variant={product.image}
                 view={view}

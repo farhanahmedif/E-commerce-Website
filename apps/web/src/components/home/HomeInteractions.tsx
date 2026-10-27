@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { ProductCard } from '@/components/product/ProductCard';
 import type { MockProduct } from '@/lib/mock/products';
@@ -40,33 +40,6 @@ export function FeaturedTabs({ products }: { products: MockProduct[] }) {
   );
 }
 
-export function Countdown() {
-  const [remaining, setRemaining] = useState('--:--:--');
-  useEffect(() => {
-    const deadline = Date.now() + 8 * 60 * 60 * 1000;
-    const update = () => {
-      const seconds = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
-      setRemaining(
-        [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60]
-          .map((value) => String(value).padStart(2, '0'))
-          .join(':'),
-      );
-    };
-    update();
-    const timer = window.setInterval(update, 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  return (
-    <time
-      aria-label="ফ্ল্যাশ সেল শেষ হতে বাকি"
-      className="rounded bg-haat-charcoal px-3 py-1.5 font-mono text-lg font-bold tracking-wider text-white"
-      suppressHydrationWarning
-    >
-      {remaining}
-    </time>
-  );
-}
-
 export function NewsletterForm() {
   const [message, setMessage] = useState('');
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -77,7 +50,7 @@ export function NewsletterForm() {
       setMessage(result.error.issues[0]?.message ?? 'ইমেইলটি আবার দেখুন।');
       return;
     }
-    setMessage('ধন্যবাদ! হাটের নতুন খবর আপনার ইনবক্সে পৌঁছাবে।');
+    setMessage('ডেমো: ইমেইলটি যাচাই হয়েছে, তবে সাবস্ক্রিপশন সংরক্ষিত হয়নি।');
     event.currentTarget.reset();
   }
   return (

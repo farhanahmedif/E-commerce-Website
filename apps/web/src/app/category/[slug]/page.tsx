@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductListing } from '@/components/listing/ProductListing';
-import { getCategoryBySlug, getProducts } from '@/lib/mock/products';
+import { getCategoryBySlug } from '@/lib/mock/products';
+import { getCatalogProducts } from '@/lib/catalog';
 import { readProductFilters, searchString } from '@/lib/mock/query';
 import { Container } from '@/components/ui/Container';
 
@@ -9,10 +10,8 @@ type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-export async function generateStaticParams() {
-  const { categories } = await import('@/lib/mock/categories');
-  return categories.map(({ slug }) => ({ slug }));
-}
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const category = await getCategoryBySlug(slug);
@@ -33,7 +32,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   if (!category) notFound();
   const query = await searchParams;
   const filters = { ...readProductFilters(query), category: slug };
-  const items = await getProducts(filters);
+  const items = await getCatalogProducts(filters);
   return (
     <>
       <Container>

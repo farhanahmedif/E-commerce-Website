@@ -15,7 +15,7 @@ export function FooterNewsletterForm() {
       setMessage(result.error.issues[0]?.message ?? 'ইমেইলটি আবার দেখুন।');
       return;
     }
-    setMessage('ধন্যবাদ! হাটের নতুন খবর আপনার ইনবক্সে পৌঁছাবে।');
+    setMessage('ডেমো: ইমেইলটি যাচাই হয়েছে, তবে সাবস্ক্রিপশন সংরক্ষিত হয়নি।');
     event.currentTarget.reset();
   }
   return (

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ProductListing } from '@/components/listing/ProductListing';
-import { getProducts } from '@/lib/mock/products';
+import { getCatalogProducts } from '@/lib/catalog';
 import { readProductFilters, searchString } from '@/lib/mock/query';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -14,10 +14,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProductsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const filters = readProductFilters(params);
-  const items = await getProducts(filters);
+  const items = await getCatalogProducts(filters);
   return (
     <ProductListing
       breadcrumbs={[{ label: 'হোম', href: '/' }, { label: 'সব পণ্য' }]}

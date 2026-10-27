@@ -11,8 +11,10 @@
     "dev:api": "npm run dev --workspace @haatgo/api",
     "dev": "concurrently -k -n web,api -c green,blue \"npm:dev:web\" \"npm:dev:api\"",
     "build": "npm run build --workspace @haatgo/web",
-    "lint": "npm run lint --workspace @haatgo/web",
-    "type-check": "npm run type-check --workspace @haatgo/web",
+    "build:api": "npm run build --workspace @haatgo/api",
+    "build:all": "npm run build && npm run build:api",
+    "lint": "npm run lint --workspace @haatgo/web && npm run lint --workspace @haatgo/api",
+    "type-check": "npm run type-check --workspace @haatgo/web && npm run type-check --workspace @haatgo/api",
     "format": "prettier --write ."
   },
   "devDependencies": {

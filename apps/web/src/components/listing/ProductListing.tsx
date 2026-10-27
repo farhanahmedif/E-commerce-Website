@@ -45,8 +45,11 @@ export function ProductListing({
   search?: string;
 }) {
   const pageSize = 12;
-  const page = Math.max(1, Number(new URLSearchParams(search).get('page') ?? 1) || 1);
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const requestedPage = Number(new URLSearchParams(search).get('page') ?? 1);
+  const page = Number.isSafeInteger(requestedPage)
+    ? Math.min(pageCount, Math.max(1, requestedPage))
+    : 1;
   const currentItems = items.slice((page - 1) * pageSize, page * pageSize);
   const selected = new URLSearchParams(search);
   const chips: Chip[] = [];

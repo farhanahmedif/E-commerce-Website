@@ -2,16 +2,26 @@ import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { FooterNewsletterForm } from './FooterNewsletterForm';
 
-const quickLinks = ['আমাদের কথা', 'সব ক্যাটাগরি', 'আজকের অফার', 'বিক্রেতা হোন'];
-const serviceLinks = ['যোগাযোগ করুন', 'ডেলিভারি তথ্য', 'রিটার্ন ও রিফান্ড', 'সাধারণ জিজ্ঞাসা'];
+const quickLinks = [
+  { label: 'আমাদের কথা', href: '/#our-story' },
+  { label: 'সব ক্যাটাগরি', href: '/#shops' },
+  { label: 'আজকের অফার', href: '/products?onSale=true' },
+];
+const serviceLinks = [
+  { label: 'অর্ডার ট্র্যাক করুন', href: '/track-order' },
+  { label: 'আমার অর্ডার', href: '/account/orders' },
+];
 
-function FooterLinks({ links }: { links: string[] }) {
+function FooterLinks({ links }: { links: { label: string; href: string }[] }) {
   return (
     <ul className="mt-4 space-y-2.5">
       {links.map((link) => (
-        <li key={link}>
-          <Link className="text-sm text-white/75 transition hover:text-haat-marigold" href="#">
-            {link}
+        <li key={link.href}>
+          <Link
+            className="text-sm text-white/75 transition hover:text-haat-marigold"
+            href={link.href}
+          >
+            {link.label}
           </Link>
         </li>
       ))}
@@ -31,29 +41,7 @@ export function Footer() {
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/75">
               গ্রামের হাটের আপন আমেজ, এখন আপনার হাতের মুঠোয়। সারা বাংলাদেশের সেরা পণ্য এক ঠিকানায়।
             </p>
-            <div aria-label="Social media" className="mt-5 flex gap-2">
-              <a
-                aria-label="Facebook"
-                className="grid size-10 place-items-center rounded-full border border-white/30 text-sm font-bold transition hover:border-haat-marigold hover:text-haat-marigold"
-                href="https://www.facebook.com/"
-              >
-                f
-              </a>
-              <a
-                aria-label="Instagram"
-                className="grid size-10 place-items-center rounded-full border border-white/30 text-xs font-bold transition hover:border-haat-marigold hover:text-haat-marigold"
-                href="https://www.instagram.com/"
-              >
-                ig
-              </a>
-              <a
-                aria-label="YouTube"
-                className="grid size-10 place-items-center rounded-full border border-white/30 text-[10px] font-bold transition hover:border-haat-marigold hover:text-haat-marigold"
-                href="https://www.youtube.com/"
-              >
-                yt
-              </a>
-            </div>
+            <p className="mt-5 text-sm text-white/65">সামাজিক পেজের লিংক শিগগির যোগ হবে।</p>
           </div>
           <div>
             <h2 className="font-display text-lg font-bold text-haat-marigold">দরকারি লিংক</h2>
@@ -64,10 +52,12 @@ export function Footer() {
             <FooterLinks links={serviceLinks} />
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-haat-marigold">নিরাপদ পেমেন্ট</h2>
-            <p className="mt-4 text-sm text-white/75">আপনার পছন্দের মাধ্যমে পেমেন্ট করুন</p>
+            <h2 className="font-display text-lg font-bold text-haat-marigold">পেমেন্ট ও অর্ডার</h2>
+            <p className="mt-4 text-sm text-white/75">
+              শুধু নমুনা COD flow দেখা যায়; কোনো পেমেন্ট বা delivery হয় না।
+            </p>
             <div aria-label="Available payment methods" className="mt-3 flex flex-wrap gap-2">
-              {['bKash', 'Nagad', 'Rocket', 'কার্ড', 'COD'].map((method) => (
+              {['COD demo', 'Online payment বন্ধ'].map((method) => (
                 <span
                   className="rounded border border-white/25 bg-white/10 px-2.5 py-1 text-xs font-bold"
                   key={method}

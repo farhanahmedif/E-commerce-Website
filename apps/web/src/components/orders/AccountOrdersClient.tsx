@@ -5,12 +5,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { formatBDT } from '@/lib/formatBDT';
-import {
-  getDemoOrderStatus,
-  getOrdersForDevice,
-  orderStatuses,
-  type MockOrder,
-} from '@/lib/orders';
+import { getOrderStatus, getOrdersForDevice, orderStatuses, type MockOrder } from '@/lib/orders';
 
 const statusLabels = ['অর্ডার পাওয়া গেছে', 'নিশ্চিত', 'পথে আছে', 'পৌঁছে গেছে'];
 
@@ -33,13 +28,17 @@ export function AccountOrdersClient() {
       <Container>
         <p className="listing-eyebrow">আপনার হাটের খাতা</p>
         <h1 className="orders-title">আমার অর্ডার</h1>
-        <p className="text-haat-muted">এই ডিভাইসে করা ডেমো অর্ডারগুলো এখানে থাকবে।</p>
+        <p className="text-haat-muted">
+          {orders.some((order) => order.source === 'backend')
+            ? 'এই device-এ করা backend ও demo order-এর browser copy এখানে থাকবে।'
+            : 'এই ডিভাইসে করা ডেমো অর্ডারগুলো এখানে থাকবে।'}
+        </p>
         {!loaded ? (
           <p aria-live="polite">অর্ডার খুঁজছি…</p>
         ) : orders.length ? (
           <div className="orders-list">
             {orders.map((order) => {
-              const status = getDemoOrderStatus(order);
+              const status = getOrderStatus(order);
               return (
                 <article className="order-list-card" key={order.id}>
                   <header>

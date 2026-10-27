@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, CreditCard, RotateCcw, Truck } from 'lucide-react';
+import { ArrowRight, ClipboardList, Info, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { ProductCard } from '@/components/product/ProductCard';
 import { categories } from '@/lib/mock/categories';
-import { products } from '@/lib/mock/products';
+import { getCatalogProducts } from '@/lib/catalog';
 import { formatBDT } from '@/lib/formatBDT';
-import { Countdown, FeaturedTabs, NewsletterForm } from '@/components/home/HomeInteractions';
+import { FeaturedTabs, NewsletterForm } from '@/components/home/HomeInteractions';
 import { HeroBoard } from '@/components/home/HeroBoard';
 
 export const metadata: Metadata = {
@@ -23,16 +23,15 @@ export const metadata: Metadata = {
 
 const trust = [
   {
-    icon: Truck,
-    title: '৳ ১,০০০-এর বেশি অর্ডারে ডেলিভারি ফ্রি',
-    detail: 'সারা দেশে যত্ন করে পৌঁছে দিই',
+    icon: ShoppingBag,
+    title: '১. পণ্য পছন্দ করুন',
+    detail: 'দাম, ছবি ও নমুনা ভ্যারিয়েন্ট দেখুন',
   },
-  { icon: BadgeCheck, title: 'হাতে পেয়ে টাকা দিন', detail: 'ক্যাশ অন ডেলিভারি আছে' },
-  { icon: RotateCcw, title: 'সহজে ফেরত দিন', detail: 'পছন্দ না হলে জানালেই হবে' },
-  { icon: CreditCard, title: 'বিকাশ ও নগদে পেমেন্ট', detail: 'আপনার সুবিধার পদ্ধতিতে' },
+  { icon: ShoppingCart, title: '২. কার্টে রাখুন', detail: 'ভ্যারিয়েন্ট ও পরিমাণ মিলিয়ে নিন' },
+  { icon: ClipboardList, title: '৩. Checkout দেখুন', detail: 'ফর্মটি নমুনা অর্ডারের জন্য' },
+  { icon: Info, title: 'এটি demo storefront', detail: 'অর্ডার বিক্রেতার কাছে পৌঁছায় না' },
 ];
 
-const tickerProducts = [...products.slice(0, 8), ...products.slice(0, 8)];
 const reviews = [
   {
     name: 'সাবিহা রহমান',
@@ -54,7 +53,11 @@ const reviews = [
   },
 ];
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
+  const products = await getCatalogProducts();
+  const tickerProducts = [...products.slice(0, 8), ...products.slice(0, 8)];
   return (
     <main>
       <HeroBoard />
@@ -129,14 +132,16 @@ export default function HomePage() {
           <div className="flash-heading">
             <SectionHeading
               eyebrow="আজকের দরদাম"
-              description="সীমিত সময়ের জন্য পছন্দের পণ্যে বিশেষ ছাড়।"
+              description="এখানে দেখানো দাম ও ছাড় নমুনা; কেনার আগে বিক্রেতার সঙ্গে নিশ্চিত করুন।"
             >
-              ফ্ল্যাশ সেল
+              নমুনা ছাড়
             </SectionHeading>
-            <div className="countdown-wrap">
-              <span>সময় বাকি</span>
-              <Countdown />
-            </div>
+            <p
+              className="mb-4 inline-block rotate-1 border border-dashed border-haat-brick bg-haat-paper px-3 py-2 text-xs font-bold text-haat-brick md:mb-0"
+              role="note"
+            >
+              নমুনা ছাড় · আসল offer বা countdown নয়
+            </p>
           </div>
           <div className="product-row">
             {products.slice(0, 6).map((product) => (
@@ -158,7 +163,7 @@ export default function HomePage() {
         </Container>
       </section>
 
-      <section className="story-section py-14 sm:py-20">
+      <section className="story-section py-14 sm:py-20" id="our-story">
         <Container>
           <div className="story-card">
             <div className="story-seal" aria-hidden="true">
@@ -186,7 +191,7 @@ export default function HomePage() {
         <Container>
           <SectionHeading
             eyebrow="হাটের ক্রেতারা বলছেন"
-            description="প্রতিটি ভালো কেনাকাটা আর একটি নতুন পরিচয়ের শুরু।"
+            description="নিচের কথাগুলো শুধু ডিজাইন preview-এর নমুনা—বাস্তব ক্রেতার review নয়।"
           >
             ক্রেতাদের মনের কথা
           </SectionHeading>

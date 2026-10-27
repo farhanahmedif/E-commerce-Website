@@ -546,6 +546,11 @@ button {
     12px 12px,
     100% 100%;
 }
+.has-product-image::before,
+.has-product-image .art-sun,
+.has-product-image .art-caption {
+  display: none;
+}
 .product-art::before {
   position: absolute;
   inset: 10%;

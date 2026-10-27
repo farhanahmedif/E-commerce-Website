@@ -2,7 +2,13 @@
 
 import Link from 'next/link';
 import { Heart, Plus, Star } from 'lucide-react';
-import type { MockProduct } from '@/lib/mock/products';
+import {
+  getDefaultVariantSelections,
+  getVariantStock,
+  getVariantSku,
+  getVariantPrice,
+  type MockProduct,
+} from '@/lib/mock/products';
 import { formatBDT } from '@/lib/formatBDT';
 import { useShopStore } from '@/lib/store';
 import { ProductImage } from './ProductImage';
@@ -11,16 +17,30 @@ export function ProductCard({ product }: { product: MockProduct }) {
   const wished = useShopStore((state) => state.wishlist.includes(product.id));
   const addToCart = useShopStore((state) => state.addToCart);
   const toggleWishlist = useShopStore((state) => state.toggleWishlist);
-  const discount = Math.round((1 - product.price / product.oldPrice) * 100);
+  const defaultSelections = getDefaultVariantSelections(product);
+  const quickAddStock = getVariantStock(product, defaultSelections);
+  const quickAddVariantLabel = product.variants
+    .map((variant) => `${variant.name}: ${defaultSelections[variant.name]}`)
+    .join(' · ');
+  const quickAddVariantSku = getVariantSku(product, defaultSelections);
+  const quickAddPrice = getVariantPrice(product, defaultSelections);
+  const discount =
+    product.oldPrice > quickAddPrice ? Math.round((1 - quickAddPrice / product.oldPrice) * 100) : 0;
 
   return (
     <article className="product-card group relative min-w-0 rounded-lg border border-haat-green/15 bg-[#fffaf0] p-2.5 sm:p-3">
       <div className="relative overflow-hidden rounded-md">
         <Link aria-label={`${product.nameBn} দেখুন`} href={`/products/${product.slug}`}>
-          <ProductImage className="product-image" name={product.nameBn} variant={product.image} />
+          <ProductImage
+            className="product-image"
+            imageUrl={product.imageUrls?.[0]}
+            name={product.nameBn}
+            variant={product.image}
+          />
           <ProductImage
             className="product-image product-image-secondary"
             name={`${product.nameBn}, পেছনের দিক`}
+            imageUrl={product.imageUrls?.[1] ?? product.imageUrls?.[0]}
             variant={product.image}
             secondary
           />
@@ -28,9 +48,11 @@ export function ProductCard({ product }: { product: MockProduct }) {
         <span className="absolute left-2 top-2 -rotate-6 rounded-full border-2 border-haat-brick bg-haat-paper px-2 py-1 text-[10px] font-bold text-haat-brick sm:text-xs">
           {product.badge}
         </span>
-        <span className="absolute right-2 top-2 rotate-6 rounded-full bg-haat-brick px-2 py-1 text-[10px] font-extrabold text-white sm:text-xs">
-          -{discount}%
-        </span>
+        {discount > 0 ? (
+          <span className="absolute right-2 top-2 rotate-6 rounded-full bg-haat-brick px-2 py-1 text-[10px] font-extrabold text-white sm:text-xs">
+            -{discount}%
+          </span>
+        ) : null}
         <button
           aria-label={
             wished ? `${product.nameBn} wishlist থেকে সরান` : `${product.nameBn} wishlist-এ রাখুন`
@@ -44,12 +66,27 @@ export function ProductCard({ product }: { product: MockProduct }) {
         </button>
         <button
           aria-label={`${product.nameBn} কার্টে যোগ করুন`}
-          disabled={product.stock === 0}
+          disabled={quickAddStock === 0}
           className="quick-add absolute inset-x-2 bottom-2 flex min-h-10 translate-y-0 items-center justify-center gap-2 rounded bg-haat-green font-semibold text-white shadow transition duration-200 hover:bg-haat-green-deep focus-visible:outline-offset-2 sm:translate-y-14 sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0"
-          onClick={() => addToCart(product)}
+          onClick={() =>
+            addToCart(
+              product,
+              1,
+              quickAddVariantLabel,
+              quickAddStock,
+              quickAddVariantSku,
+              quickAddPrice,
+            )
+          }
           type="button"
         >
-          {product.stock === 0 ? 'আপাতত স্টকে নেই' : <><Plus aria-hidden="true" className="size-4" /> দ্রুত কার্টে নিন</>}
+          {quickAddStock === 0 ? (
+            'আপাতত স্টকে নেই'
+          ) : (
+            <>
+              <Plus aria-hidden="true" className="size-4" /> দ্রুত কার্টে নিন
+            </>
+          )}
         </button>
       </div>
       <div className="px-1 pb-1 pt-3">
@@ -69,14 +106,18 @@ export function ProductCard({ product }: { product: MockProduct }) {
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="price-tag font-display font-bold text-haat-charcoal">
-            {formatBDT(product.price)}
+            {formatBDT(quickAddPrice)}
           </span>
-          <span className="text-xs text-haat-muted line-through">
-            {formatBDT(product.oldPrice)}
-          </span>
+          {product.oldPrice > quickAddPrice ? (
+            <span className="text-xs text-haat-muted line-through">
+              {formatBDT(product.oldPrice)}
+            </span>
+          ) : null}
         </div>
         {product.stock === 0 ? (
-          <p className="mt-2 inline-block -rotate-1 bg-haat-charcoal px-2 py-0.5 text-xs font-semibold text-haat-paper">আপাতত স্টকে নেই</p>
+          <p className="mt-2 inline-block -rotate-1 bg-haat-charcoal px-2 py-0.5 text-xs font-semibold text-haat-paper">
+            আপাতত স্টকে নেই
+          </p>
         ) : product.stock < 5 ? (
           <p className="mt-2 inline-block -rotate-1 bg-haat-charcoal px-2 py-0.5 text-xs font-semibold text-haat-paper">
             আর মাত্র {product.stock}টি!

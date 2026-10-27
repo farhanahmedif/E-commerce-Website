@@ -7,7 +7,7 @@ export function AnnouncementBar() {
         <span className="text-haat-marigold" aria-hidden="true">
           ✳
         </span>
-        <p>৳ ৯৯৯-এর বেশি অর্ডারে সারা দেশে ফ্রি ডেলিভারি</p>
+        <p>পরীক্ষামূলক storefront: checkout-এর অর্ডার বিক্রেতার কাছে যায় না</p>
         <span className="hidden text-haat-marigold sm:inline" aria-hidden="true">
           ✳
         </span>

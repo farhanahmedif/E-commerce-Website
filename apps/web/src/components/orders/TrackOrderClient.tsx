@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { formatBDT } from '@/lib/formatBDT';
 import {
-  getDemoOrderStatus,
+  getOrderStatus,
   getDeliveryEstimate,
   getOrderById,
   normalizeBangladeshPhone,
@@ -67,7 +67,7 @@ export function TrackOrderClient({
     setSearched(true);
   }
 
-  const currentStatus = order ? getDemoOrderStatus(order) : 'pending';
+  const currentStatus = order ? getOrderStatus(order) : 'pending';
   const currentIndex = orderStatuses.indexOf(currentStatus);
   return (
     <main className="tracking-page">
@@ -129,7 +129,8 @@ export function TrackOrderClient({
               ))}
             </ol>
             <p className="checkout-safe-note">
-              ডেমো অর্ডারের অগ্রগতি সময়ের সঙ্গে স্বয়ংক্রিয়ভাবে এগোয়; বাস্তব courier update নেই।
+              এটি পরীক্ষামূলক অর্ডার; বিক্রেতা বা কুরিয়ারের কাছ থেকে কোনো বাস্তব status update আসে
+              না।
             </p>
           </section>
         ) : null}
