@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Heart, Menu, Search, ShoppingBag, UserRound, X } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
@@ -9,13 +9,26 @@ import { categories as shopCategories } from '@/lib/mock/categories';
 
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const cartCount = useShopStore(selectCartCount);
   const wishlistCount = useShopStore((state) => state.wishlist.length);
   const hydrated = useShopStore((state) => state.hasHydrated);
 
+  useEffect(() => {
+    const updateScrollState = () => setIsScrolled(window.scrollY > 24);
+
+    updateScrollState();
+    window.addEventListener('scroll', updateScrollState, { passive: true });
+
+    return () => window.removeEventListener('scroll', updateScrollState);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-haat-charcoal/10 bg-haat-paper/95 backdrop-blur-sm">
-      <Container className="py-3 sm:py-4">
+    <header
+      className="site-header sticky top-0 z-40 border-b border-haat-charcoal/10 bg-haat-paper/95 backdrop-blur-sm"
+      data-scrolled={isScrolled}
+    >
+      <Container className="site-header-container py-3 transition-[padding] duration-200 sm:py-4">
         <div className="flex items-center gap-3 sm:gap-6">
           <button
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
@@ -37,7 +50,7 @@ export function Navbar() {
             </span>
           </Link>
 
-          <form action="/search" className="hidden min-w-0 flex-1 md:block" role="search">
+          <form action="/search" className="site-search hidden min-w-0 flex-1 md:block" role="search">
             <label className="sr-only" htmlFor="site-search">
               পণ্য খুঁজুন
             </label>
@@ -65,27 +78,27 @@ export function Navbar() {
           >
             <Link
               aria-label={`পছন্দের তালিকা, ${hydrated ? wishlistCount : 0}টি পণ্য`}
-              className="relative grid size-10 place-items-center rounded-md text-haat-green transition hover:bg-haat-green/10"
+              className="relative grid size-9 place-items-center rounded-md text-haat-green transition hover:bg-haat-green/10 sm:size-10"
               href="/wishlist"
             >
               <Heart aria-hidden="true" className="size-5" />
-              <span className="absolute right-0 top-0 grid size-[18px] place-items-center rounded-full bg-haat-marigold text-[10px] font-bold text-haat-green">
+              <span className="absolute right-0 top-0 grid size-4 place-items-center rounded-full bg-haat-marigold text-[9px] font-bold text-haat-green sm:size-[18px] sm:text-[10px]">
                 {hydrated ? wishlistCount : 0}
               </span>
             </Link>
             <Link
               aria-label={`Cart, ${hydrated ? cartCount : 0} items`}
-              className="relative grid size-10 place-items-center rounded-md text-haat-green transition hover:bg-haat-green/10"
+              className="relative grid size-9 place-items-center rounded-md text-haat-green transition hover:bg-haat-green/10 sm:size-10"
               href="/cart"
             >
               <ShoppingBag aria-hidden="true" className="size-5" />
-              <span className="absolute right-0 top-0 grid size-[18px] place-items-center rounded-full bg-haat-brick text-[10px] font-bold text-white">
+              <span className="absolute right-0 top-0 grid size-4 place-items-center rounded-full bg-haat-brick text-[9px] font-bold text-white sm:size-[18px] sm:text-[10px]">
                 {hydrated ? cartCount : 0}
               </span>
             </Link>
             <Link
               aria-label="এই browser-এর নমুনা অর্ডার"
-              className="hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-semibold text-haat-green transition hover:bg-haat-green/10 sm:flex"
+              className="hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-semibold text-haat-green transition hover:bg-haat-green/10 sm:flex"
               href="/account/orders"
             >
               <UserRound aria-hidden="true" className="size-5" />
@@ -119,18 +132,21 @@ export function Navbar() {
 
         <nav
           aria-label="Product categories"
-          className="hidden items-center gap-7 pt-4 text-sm font-semibold text-haat-charcoal lg:flex"
+          className="category-navigation hidden items-center gap-2 pt-4 text-sm font-semibold text-haat-charcoal lg:flex"
         >
           {shopCategories.slice(0, 5).map((category) => (
             <Link
-              className="transition-colors hover:text-haat-brick"
+              className="whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors hover:bg-white hover:text-haat-green"
               href={`/category/${category.slug}`}
               key={category.slug}
             >
               {category.nameBn}
             </Link>
           ))}
-          <Link className="ml-auto text-haat-brick hover:underline" href="/products?onSale=true">
+          <Link
+            className="ml-auto whitespace-nowrap rounded-lg px-2.5 py-1.5 text-haat-brick transition-colors hover:bg-haat-brick/5 hover:underline"
+            href="/products?onSale=true"
+          >
             আজকের অফার
           </Link>
         </nav>
